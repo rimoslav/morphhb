@@ -11,52 +11,53 @@ from xml.etree import ElementTree as ET
 
 bookNameData = {}
 
-bookNameData['Gen'] = 'Genesis'
-bookNameData['Exod'] = 'Exodus'
-bookNameData['Lev'] = 'Leviticus'
-bookNameData['Num'] = 'Numbers'
-bookNameData['Deut'] = 'Deuteronomy'
-bookNameData['Josh'] = 'Joshua'
-bookNameData['Judg'] = 'Judges'
-bookNameData['Ruth'] = 'Ruth'
-bookNameData['1Sam'] = 'I Samuel'
-bookNameData['2Sam'] = 'II Samuel'
-bookNameData['1Kgs'] = 'I Kings'
-bookNameData['2Kgs'] = 'II Kings'
-bookNameData['1Chr'] = 'I Chronicles'
-bookNameData['2Chr'] = 'II Chronicles'
-bookNameData['Ezra'] = 'Ezra'
-bookNameData['Neh'] = 'Nehemiah'
-bookNameData['Esth'] = 'Esther'
-bookNameData['Job'] = 'Job'
-bookNameData['Ps'] = 'Psalms'
-bookNameData['Prov'] = 'Proverbs'
-bookNameData['Eccl'] = 'Ecclesiastes'
-bookNameData['Song'] = 'Song of Solomon'
-bookNameData['Isa'] = 'Isaiah'
-bookNameData['Jer'] = 'Jeremiah'
-bookNameData['Lam'] = 'Lamentations'
-bookNameData['Ezek'] = 'Ezekiel'
-bookNameData['Dan'] = 'Daniel'
-bookNameData['Hos'] = 'Hosea'
-bookNameData['Joel'] = 'Joel'
-bookNameData['Amos'] = 'Amos'
-bookNameData['Obad'] = 'Obadiah'
-bookNameData['Jonah'] = 'Jonah'
-bookNameData['Mic'] = 'Micah'
-bookNameData['Nah'] = 'Nahum'
-bookNameData['Hab'] = 'Habakkuk'
-bookNameData['Zeph'] = 'Zephaniah'
-bookNameData['Hag'] = 'Haggai'
-bookNameData['Zech'] = 'Zechariah'
-bookNameData['Mal'] = 'Malachi'
+bookNameData['Gen'] = 'genesis'
+bookNameData['Exod'] = 'exodus'
+bookNameData['Lev'] = 'leviticus'
+bookNameData['Num'] = 'numbers'
+bookNameData['Deut'] = 'deuteronomy'
+bookNameData['Josh'] = 'joshua'
+bookNameData['Judg'] = 'judges'
+bookNameData['Ruth'] = 'ruth'
+bookNameData['1Sam'] = '1samuel'
+bookNameData['2Sam'] = '2samuel'
+bookNameData['1Kgs'] = '1kings'
+bookNameData['2Kgs'] = '2kings'
+bookNameData['1Chr'] = '1chronicles'
+bookNameData['2Chr'] = '2chronicles'
+bookNameData['Ezra'] = 'ezra'
+bookNameData['Neh'] = 'nehemiah'
+bookNameData['Esth'] = 'esther'
+bookNameData['Job'] = 'job'
+bookNameData['Ps'] = 'psalms'
+bookNameData['Prov'] = 'proverbs'
+bookNameData['Eccl'] = 'ecclesiastes'
+bookNameData['Song'] = 'songofsolomon'
+bookNameData['Isa'] = 'isaiah'
+bookNameData['Jer'] = 'jeremiah'
+bookNameData['Lam'] = 'lamentations'
+bookNameData['Ezek'] = 'ezekiel'
+bookNameData['Dan'] = 'daniel'
+bookNameData['Hos'] = 'hosea'
+bookNameData['Joel'] = 'joel'
+bookNameData['Amos'] = 'amos'
+bookNameData['Obad'] = 'obadiah'
+bookNameData['Jonah'] = 'jonah'
+bookNameData['Mic'] = 'micah'
+bookNameData['Nah'] = 'nahum'
+bookNameData['Hab'] = 'habakkuk'
+bookNameData['Zeph'] = 'zephaniah'
+bookNameData['Hag'] = 'haggai'
+bookNameData['Zech'] = 'zechariah'
+bookNameData['Mal'] = 'malachi'
 
-stripPointing = False
+stripAllPointing = False
 removeLemmaTypes = False
 stripHFromMorph = False
 prefixLemmasWithH = False
 remapVerses = False
 splitByBook = False
+stripCantillationOnly = False
 
 
 def getBookData(filename):
@@ -78,6 +79,15 @@ def getBookData(filename):
 
             for word in words:
                 singleWordArray = []
+                
+                processed_word_text = word.text
+
+                if stripCantillationOnly:
+                    if processed_word_text:
+                        processed_word_text = stripCantillationOnlyFunc(processed_word_text)
+                elif stripAllPointing:
+                    if processed_word_text:
+                        processed_word_text = stripVowelsAndCantillationFunc(processed_word_text)
 
                 lemma = word.attrib.get('lemma')
 
@@ -93,7 +103,7 @@ def getBookData(filename):
                 if morph and stripHFromMorph:
                     morph = stripHFromMorphFunc(morph)
 
-                singleWordArray.append(word.text)
+                singleWordArray.append(processed_word_text)
                 singleWordArray.append(lemma)
                 singleWordArray.append(morph)
 
@@ -126,12 +136,17 @@ def removeLemmaTypesFunc(string):
     return re.sub(r" [abcdef]|\+", "", string)
 
 
-def stripPointingFunc(string):
+def stripVowelsAndCantillationFunc(string):
     return re.sub(r"[\u0591-\u05c7]", "", string)
 
 
+def stripCantillationOnlyFunc(string):
+    return re.sub(r"[\u0591-\u05AF\u05C0\u05C3\u05C6]", "", string)
+
+
 def getCommandOptions(argv):
-    global stripPointing
+    global stripAllPointing
+    global stripCantillationOnly
     global removeLemmaTypes
     global stripHFromMorph
     global prefixLemmasWithH
@@ -141,23 +156,26 @@ def getCommandOptions(argv):
     try:
         opts, args = getopt.getopt(argv, "h:",
                                    [
-                                       "stripPointing",
+                                       "stripAllPointing",
+                                       "stripCantillationOnly",
                                        "removeLemmaTypes",
                                        "stripHFromMorph",
                                        "prefixLemmasWithH",
                                        "remapVerses",
-                                       "splitByBook"
+                                       "splitByBook",
                                    ])
     except getopt.GetoptError:
-        print('python3 morphhb.py --stripPointing --removeLemmaTypes --stripHFromMorph --prefixLemmasWithH --remapVerses --splitByBook')
+        print('python3 morphhbXML-to-JSON.py --stripAllPointing --stripCantillationOnly --removeLemmaTypes --stripHFromMorph --prefixLemmasWithH --remapVerses --splitByBook')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('python3 morphhb.py --stripPointing --removeLemmaTypes --stripHFromMorph --prefixLemmasWithH --remapVerses --splitByBook')
+            print('python3 morphhbXML-to-JSON.py --stripAllPointing --stripCantillationOnly --removeLemmaTypes --stripHFromMorph --prefixLemmasWithH --remapVerses --splitByBook')
+            print('--stripAllPointing: Removes ALL pointing (vowels and cantillation marks) from the Hebrew text.')
+            print('--stripCantillationOnly: Removes only cantillation marks, keeping vowels (niqqud).')
             sys.exit()
-        elif opt in ("--stripPointing"):
-            print('stripPointing')
-            stripPointing = True
+        elif opt in ("--stripAllPointing"):
+            print('stripAllPointing (vowels and cantillation) enabled')
+            stripAllPointing = True
         elif opt in ("--removeLemmaTypes"):
             print('removeLemmaTypes')
             removeLemmaTypes = True
@@ -173,6 +191,9 @@ def getCommandOptions(argv):
         elif opt in ("--splitByBook"):
             print('splitByBook')
             splitByBook = True
+        elif opt in ("--stripCantillationOnly"):
+            print('stripCantillationOnly (keep vowels)')
+            stripCantillationOnly = True
 
 
 def main():
@@ -212,7 +233,7 @@ def main():
 
                 wlcData = hebrew[wlcBook][wlcChapter][wlcVerse]
 
-                if kjvBook == 'Psalms' and kjvVerse == 0:
+                if kjvBook == 'psalms' and kjvVerse == 0:
                     remapped[kjvBook][kjvChapter][kjvVerse] = hebrew[wlcBook][wlcChapter][wlcVerse - 1] + wlcData
                     remapped[wlcBook][wlcChapter][wlcVerse] = []
                 else:
@@ -239,54 +260,68 @@ def main():
                     del remapped[wlcBook][wlcChapter][wlcVerse]
 
     # Fix partial verses manually
-    remapped['I Kings'][17][32] = hebrew['I Kings'][17][32] + \
-        hebrew['I Kings'][17][33]
-    remapped['I Kings'][17][32][19:43] = []
-    remapped['I Kings'][17][33][0:10] = []
-    remapped['I Kings'][19][1] = hebrew['I Kings'][19][1] + \
-        hebrew['I Kings'][19][2]
-    remapped['I Kings'][19][1][13:34] = []
-    remapped['I Kings'][19][2][0:6] = []
+    remapped['1kings'][17][32] = hebrew['1kings'][17][32] + \
+        hebrew['1kings'][17][33]
+    remapped['1kings'][17][32][19:43] = []
+    remapped['1kings'][17][33][0:10] = []
+    remapped['1kings'][19][1] = hebrew['1kings'][19][1] + \
+        hebrew['1kings'][19][2]
+    remapped['1kings'][19][1][13:34] = []
+    remapped['1kings'][19][2][0:6] = []
 
-    remapped['I Kings'][21][20][8:19] = []
-    remapped['I Kings'][21][21] = hebrew['I Kings'][21][20] + \
-        hebrew['I Kings'][21][21]
-    remapped['I Kings'][21][21][0:8] = []
+    remapped['1kings'][21][20][8:19] = []
+    remapped['1kings'][21][21] = hebrew['1kings'][21][20] + \
+        hebrew['1kings'][21][21]
+    remapped['1kings'][21][21][0:8] = []
 
-    remapped['I Kings'][21][42] = hebrew['I Kings'][21][42] + \
-        hebrew['I Kings'][21][43]
+    remapped['1kings'][21][42] = hebrew['1kings'][21][42] + \
+        hebrew['1kings'][21][43]
 
-    remapped['Isaiah'][63][0] = hebrew['Isaiah'][62][18].copy()
-    remapped['Isaiah'][62][18][8:23] = []
-    remapped['Isaiah'][63][0][0:8] = []
+    remapped['isaiah'][63][0] = hebrew['isaiah'][62][18].copy()
+    remapped['isaiah'][62][18][8:23] = []
+    remapped['isaiah'][63][0][0:8] = []
 
-    remapped['Psalms'][12][4] = hebrew['Psalms'][12][4].copy()
-    remapped['Psalms'][12].append([])
-    remapped['Psalms'][12][5] = hebrew['Psalms'][12][4].copy()
-    remapped['Psalms'][12][4][6:16] = []
-    remapped['Psalms'][12][5][0: 6] = []
+    remapped['psalms'][12][4] = hebrew['psalms'][12][4].copy()
+    remapped['psalms'][12].append([])
+    remapped['psalms'][12][5] = hebrew['psalms'][12][4].copy()
+    remapped['psalms'][12][4][6:16] = []
+    remapped['psalms'][12][5][0: 6] = []
 
     if remapVerses:
         final = remapped
     else:
         final = hebrew
 
-    name = 'remapped' if remapVerses else 'hebrew'
+    # Determine the base name for output file or subdirectory
+    output_base_name = None
+    if stripCantillationOnly:
+        output_base_name = 'niqqud'
+    elif stripAllPointing:
+        output_base_name = 'clean'
+    else:
+        output_base_name = 'remapped' if remapVerses else 'hebrew'
 
     if splitByBook:
-        output_dir = os.path.join('./json', name)
+        output_dir = os.path.join('./json', output_base_name)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        for book in final:
-            target_file = os.path.join(output_dir, book.replace(" ", "").lower())
-            with open(target_file + '.json', 'w', encoding='utf8') as f:
-                json.dump(final[book], f, ensure_ascii=False)
+        for book_key_name in final:
+            target_file_path = os.path.join(output_dir, book_key_name)
+            with open(target_file_path + '.json', 'w', encoding='utf8') as f:
+                json.dump(final[book_key_name], f, ensure_ascii=False)
     else:
-        with open(name + '.json', 'w', encoding='utf8') as f:
+        single_json_filename = output_base_name + '.json'
+        with open(single_json_filename, 'w', encoding='utf8') as f:
             json.dump(final, f, ensure_ascii=False)
 
 
 if __name__ == "__main__":
     getCommandOptions(sys.argv[1:])
     main()
+
+# Example usage with all parameters:
+# python3 morphhbXML-to-JSON.py --stripAllPointing  --removeLemmaTypes --stripHFromMorph --prefixLemmasWithH --remapVerses --splitByBook
+# or:
+# python3 morphhbXML-to-JSON.py --stripCantillationOnly --removeLemmaTypes --stripHFromMorph --prefixLemmasWithH --remapVerses --splitByBook
+# because --stripAllPointing also strips cantillation marks
